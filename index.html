@@ -5,12 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Painel do Clima</title>
   <link rel="stylesheet" href="style.css">
+  <!-- SDK do Supabase -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
   <div class="container">
     <header>
       <h1>🌤️ Painel do Clima</h1>
-      <p>Consulte a previsão do tempo de qualquer cidade no mundo</p>
+      <p>Consulte a previsão do tempo e salve suas cidades favoritas</p>
     </header>
 
     <main>
@@ -20,6 +22,11 @@
       </div>
 
       <div id="resultado" class="card-resultado hidden"></div>
+
+      <section class="favoritos-section">
+        <h2>⭐ Cidades Favoritas</h2>
+        <ul id="lista-favoritos" class="lista-favoritos"></ul>
+      </section>
     </main>
   </div>
 

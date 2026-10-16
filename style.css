@@ -20,21 +20,22 @@ body {
   padding: 30px;
   border-radius: 12px;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-  max-width: 450px;
+  max-width: 480px;
   width: 100%;
-  text-align: center;
 }
 
 header h1 {
   font-size: 1.8rem;
   color: #1e3a8a;
   margin-bottom: 8px;
+  text-align: center;
 }
 
 header p {
   font-size: 0.9rem;
   color: #6b7280;
   margin-bottom: 24px;
+  text-align: center;
 }
 
 .search-box {
@@ -77,6 +78,7 @@ button:hover {
   border-radius: 10px;
   padding: 20px;
   margin-top: 15px;
+  text-align: center;
 }
 
 .card-resultado.hidden {
@@ -89,7 +91,7 @@ button:hover {
 }
 
 .card-resultado .temperatura {
-  font-size: 2.5rem;
+  font-size: 2.2rem;
   font-weight: bold;
   color: #2563eb;
   margin: 10px 0;
@@ -99,6 +101,54 @@ button:hover {
   font-size: 0.95rem;
   color: #475569;
   margin: 5px 0;
+}
+
+.btn-favoritar {
+  margin-top: 15px;
+  background-color: #10b981;
+  width: 100%;
+}
+
+.btn-favoritar:hover {
+  background-color: #059669;
+}
+
+.favoritos-section {
+  margin-top: 25px;
+  border-top: 1px solid #e5e7eb;
+  padding-top: 20px;
+}
+
+.favoritos-section h2 {
+  font-size: 1.2rem;
+  color: #1e293b;
+  margin-bottom: 12px;
+}
+
+.lista-favoritos {
+  list-style: none;
+}
+
+.lista-favoritos li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: #f1f5f9;
+  padding: 10px 12px;
+  border-radius: 8px;
+  margin-bottom: 8px;
+  font-size: 0.9rem;
+}
+
+.btn-remover {
+  background-color: #ef4444;
+  padding: 6px 10px;
+  font-size: 0.8rem;
+  border-radius: 6px;
+}
+
+.btn-remover:hover {
+  background-color: #dc2626;
 }
 
 .mensagem-erro {
