@@ -1,0 +1,12 @@
+{
+  "name": "painel-do-clima",
+  "version": "1.0.0",
+  "description": "Painel do Clima com testes e CI/CD",
+  "main": "utils.js",
+  "scripts": {
+    "test": "jest"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0"
+  }
+}
