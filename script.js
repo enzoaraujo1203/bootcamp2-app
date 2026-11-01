@@ -1,142 +1,124 @@
-// Configuração do Supabase
-const SUPABASE_URL = "https://bwmkvatrqltdhfsjjeem.supabase.co/rest/v1/";
-const SUPABASE_ANON_KEY = "sb_publishable_gCkGXeXh_6gZEsWH2vtf8Q_-fTiGJLf";
+const campoBusca = document.getElementById("campo-busca");
+const botaoBuscar = document.getElementById("botao-buscar");
+const resultado = document.getElementById("resultado");
+const listaFavoritos = document.getElementById("lista-favoritos");
 
-const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// Recupera a lista de favoritos do armazenamento local
+let favoritos = JSON.parse(localStorage.getItem("cidades_favoritas")) || [];
+atualizarListaFavoritos();
 
-const condicoesTempo = {
-  0: "Céu limpo ☀️",
-  1: "Predominantemente limpo 🌤️",
-  2: "Parcialmente nublado ⛅",
-  3: "Nublado ☁️",
-  45: "Nevoeiro 🌫️",
-  48: "Nevoeiro com geada 🌫️",
-  51: "Garoa leve 🌧️",
-  53: "Garoa moderada 🌧️",
-  55: "Garoa densa 🌧️",
-  61: "Chuva leve 🌧️",
-  63: "Chuva moderada 🌧️",
-  65: "Chuva forte 🌧️",
-  80: "Pancadas de chuva 🌦️",
-  95: "Tempestade ⛈️"
-};
-
-// CRUD SUPABASE: Create
-async function salvarFavorito(nomeCidade, detalhesClima) {
-  const { error } = await supabaseClient
-    .from("favoritos")
-    .insert({ nome_item: nomeCidade, dados_extra: detalhesClima });
-
-  if (error) {
-    console.error("Erro ao salvar favorito:", error);
-    alert("Erro ao salvar nos favoritos.");
-  } else {
-    listarFavoritos();
-  }
+// Mapeamento dos códigos meteorológicos WMO
+function obterDescricaoClima(code) {
+  const codigos = {
+    0: "☀️ Céu limpo",
+    1: "🌤️ Predominantemente limpo",
+    2: "⛅ Parcialmente nublado",
+    3: "☁️ Ensolarado a encoberto",
+    45: "🌫️ Nevoeiro",
+    48: "🌫️ Nevoeiro com geada",
+    51: "🌧️ Garoa leve",
+    53: "🌧️ Garoa moderada",
+    55: "🌧️ Garoa densa",
+    61: "☔ Chuva fraca",
+    63: "☔ Chuva moderada",
+    65: "☔ Chuva forte",
+    80: "🌦️ Pancadas de chuva leves",
+    81: "🌦️ Pancadas de chuva moderadas",
+    82: "⛈️ Pancadas de chuva violentas",
+    95: "⛈️ Tempestade"
+  };
+  return codigos[code] || "🌡️ Condição variável";
 }
 
-// CRUD SUPABASE: Read
-async function listarFavoritos() {
-  const listaElemento = document.getElementById("lista-favoritos");
-  listaElemento.innerHTML = "<li>Carregando favoritos...</li>";
-
-  const { data, error } = await supabaseClient
-    .from("favoritos")
-    .select("*")
-    .order("criado_em", { ascending: false });
-
-  if (error) {
-    console.error("Erro ao buscar favoritos:", error);
-    listaElemento.innerHTML = "<li class='mensagem-erro'>Erro ao carregar favoritos.</li>";
-    return;
-  }
-
-  if (!data || data.length === 0) {
-    listaElemento.innerHTML = "<li>Nenhuma cidade favorita salva.</li>";
-    return;
-  }
-
-  listaElemento.innerHTML = "";
-  data.forEach((item) => {
-    const li = document.createElement("li");
-    li.innerHTML = `
-      <span><strong>${item.nome_item}</strong> (${item.dados_extra})</span>
-      <button class="btn-remover" onclick="removerFavorito(${item.id})">Excluir</button>
-    `;
-    listaElemento.appendChild(li);
-  });
-}
-
-// CRUD SUPABASE: Delete
-async function removerFavorito(id) {
-  const { error } = await supabaseClient
-    .from("favoritos")
-    .delete()
-    .eq("id", id);
-
-  if (error) {
-    console.error("Erro ao remover favorito:", error);
-    alert("Erro ao remover dos favoritos.");
-  } else {
-    listarFavoritos();
-  }
-}
-
-// Consumo da API Open-Meteo
 async function buscarClima(cidade) {
-  const areaResultado = document.getElementById("resultado");
-  areaResultado.classList.remove("hidden");
-  areaResultado.innerHTML = "<p>Buscando informações do clima...</p>";
+  resultado.classList.remove("hidden");
+  resultado.innerHTML = "<p>Buscando dados meteorológicos...</p>";
 
   try {
-    const urlGeo = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(cidade)}&count=1&language=pt`;
-    const resGeo = await fetch(urlGeo);
-    if (!resGeo.ok) throw new Error("Erro ao buscar coordenadas da cidade.");
+    // 1. Busca latitude e longitude do nome da cidade (Geocoding API)
+    const geoUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(cidade)}&count=1&language=pt`;
+    const geoRes = await fetch(geoUrl);
+    
+    if (!geoRes.ok) throw new Error("Erro de conexão ao pesquisar a localidade.");
+    
+    const geoData = await geoRes.json();
 
-    const dadosGeo = await resGeo.json();
-    if (!dadosGeo.results || dadosGeo.results.length === 0) {
-      throw new Error("Cidade não encontrada. Verifique o nome e tente novamente.");
+    if (!geoData.results || geoData.results.length === 0) {
+      resultado.innerHTML = "<p>⚠️ Cidade não encontrada. Verifique a grafia e tente novamente.</p>";
+      return;
     }
 
-    const { latitude, longitude, name, country, admin1 } = dadosGeo.results[0];
+    const local = geoData.results[0];
+    const { latitude, longitude, name, country, admin1 } = local;
 
-    const urlClima = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current_weather=true`;
-    const resClima = await fetch(urlClima);
-    if (!resClima.ok) throw new Error("Erro ao obter dados meteorológicos.");
+    // 2. Busca previsão do tempo atual
+    const climaUrl = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,relative_humidity_2m,wind_speed_10m,weather_code&timezone=auto`;
+    const climaRes = await fetch(climaUrl);
 
-    const dadosClima = await resClima.json();
-    const climaAtual = dadosClima.current_weather;
-    const condicaoTexto = condicoesTempo[climaAtual.weathercode] || "Condição desconhecida";
-    const localFormatado = `${name}${admin1 ? `, ${admin1}` : ""} - ${country}`;
-    const infoResumida = `${climaAtual.temperature}°C - ${condicaoTexto}`;
+    if (!climaRes.ok) throw new Error("Erro ao consultar a API de clima.");
 
-    areaResultado.innerHTML = `
-      <h2>${localFormatado}</h2>
-      <div class="temperatura">${climaAtual.temperature} °C</div>
-      <p class="info"><strong>Condição:</strong> ${condicaoTexto}</p>
-      <p class="info"><strong>Vento:</strong> ${climaAtual.windspeed} km/h</p>
-      <button id="btn-favoritar" class="btn-favoritar">⭐ Favoritar Cidade</button>
+    const climaData = await climaRes.json();
+    const atual = climaData.current;
+
+    const localTexto = `${name}${admin1 ? ', ' + admin1 : ''} (${country || ''})`;
+    const condicaoTexto = obterDescricaoClima(atual.weather_code);
+
+    // Renderiza na tela (Temperatura, Umidade, Vento e Condição)
+    resultado.innerHTML = `
+      <h2>${localTexto}</h2>
+      <p class="clima-condicao"><strong>Condição:</strong> ${condicaoTexto}</p>
+      <div class="clima-detalhes">
+        <p><strong>🌡️ Temperatura:</strong> ${atual.temperature_2m} °C</p>
+        <p><strong>💧 Umidade relativa:</strong> ${atual.relative_humidity_2m}%</p>
+        <p><strong>💨 Vento:</strong> ${atual.wind_speed_10m} km/h</p>
+      </div>
+      <button onclick="salvarFavorito('${name}')" class="btn-fav">⭐ Salvar nos Favoritos</button>
     `;
-
-    document.getElementById("btn-favoritar").addEventListener("click", () => {
-      salvarFavorito(localFormatado, infoResumida);
-    });
-
   } catch (erro) {
-    areaResultado.innerHTML = `<p class="mensagem-erro">Ops! ${erro.message}</p>`;
+    resultado.innerHTML = `<p>❌ Erro: ${erro.message || "Não foi possível carregar as informações."}</p>`;
   }
 }
 
-document.getElementById("botao-buscar").addEventListener("click", () => {
-  const termo = document.getElementById("campo-busca").value.trim();
-  if (termo) buscarClima(termo);
+// Gerenciamento de favoritos no localStorage
+function salvarFavorito(nomeCidade) {
+  if (!favoritos.includes(nomeCidade)) {
+    favoritos.push(nomeCidade);
+    localStorage.setItem("cidades_favoritas", JSON.stringify(favoritos));
+    atualizarListaFavoritos();
+  }
+}
+
+function removerFavorito(nomeCidade) {
+  favoritos = favoritos.filter(c => c !== nomeCidade);
+  localStorage.setItem("cidades_favoritas", JSON.stringify(favoritos));
+  atualizarListaFavoritos();
+}
+
+function atualizarListaFavoritos() {
+  if (favoritos.length === 0) {
+    listaFavoritos.innerHTML = "<li>Nenhuma cidade favoritada ainda.</li>";
+    return;
+  }
+
+  listaFavoritos.innerHTML = favoritos
+    .map(cidade => `
+      <li>
+        <span onclick="buscarClima('${cidade}')" class="fav-item">${cidade}</span>
+        <button onclick="removerFavorito('${cidade}')" class="btn-remove">🗑️</button>
+      </li>
+    `)
+    .join("");
+}
+
+// Event Listeners
+botaoBuscar.addEventListener("click", () => {
+  const cidade = campoBusca.value.trim();
+  if (cidade) buscarClima(cidade);
 });
 
-document.getElementById("campo-busca").addEventListener("keypress", (e) => {
+campoBusca.addEventListener("keypress", (e) => {
   if (e.key === "Enter") {
-    const termo = e.target.value.trim();
-    if (termo) buscarClima(termo);
+    const cidade = campoBusca.value.trim();
+    if (cidade) buscarClima(cidade);
   }
 });
-
-document.addEventListener("DOMContentLoaded", listarFavoritos);
